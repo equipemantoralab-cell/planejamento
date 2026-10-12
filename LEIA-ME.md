@@ -5,7 +5,7 @@
 ## Fluxo da estrategista
 1. **+ Novo cliente** → *Projeto & IDV*: nome, estrategista, data, cores da IDV do cliente, estilo dos slides, fotos e **upload da IDV (PDF)**.
 2. **Briefing & DNA** (tópico 01): quem é o cliente, para quem fala, objetivo em 12 meses. Isso alimenta o contexto de todos os prompts.
-3. Na tela inicial, copie o **prompt de contexto** e cole no Claude do projeto do cliente (com briefing, DNA, pesquisa e call anexados).
+3. Rode a **Pesquisa com IA** (ou o modo manual de copiar/colar) e o **Sprint de inteligência real**.
 4. Preencher os tópicos na ordem do menu. Em cada um: *Copiar prompt* → Claude → colar o JSON em *Importar resposta* (ou digitar direto) → revisar. Cada tópico tem **notas de fala** e um interruptor *Incluir na apresentação*.
 5. **Revisar & gerar**: confira percentuais e pendências, depois **Apresentar** (tecla N mostra as notas), **PDF**, **PPTX editável (Canva)**, **Word (.docx)** com o planejamento completo, **Pacote .md** ou **HTML**.
 
