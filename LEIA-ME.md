@@ -9,11 +9,15 @@
 4. Preencher os tópicos na ordem do menu. Em cada um: *Copiar prompt* → Claude → colar o JSON em *Importar resposta* (ou digitar direto) → revisar. Cada tópico tem **notas de fala** e um interruptor *Incluir na apresentação*.
 5. **Revisar & gerar**: confira percentuais e pendências, depois **Apresentar** (tecla N mostra as notas), **PDF**, **PPTX editável (Canva)** ou **HTML**.
 
-## IA conectada (Claude)
-1. Clique em **⚙ IA** (menu lateral), cole sua chave da API da Anthropic (console.anthropic.com → API Keys) e use *Testar conexão*. A chave fica só neste computador.
-2. No tópico **Briefing & DNA**, cole (ou anexe .txt/.md/.pdf) o briefing, o DNA do Expert, a pesquisa e a call em *Material-base*.
-3. Em cada tópico, **✨ Gerar com IA** preenche o formulário usando o material e o que já foi definido nos outros tópicos. Na tela inicial, **Gerar todos os tópicos pendentes** faz isso em sequência. Mercado e Concorrência usam busca na web (desligável).
-4. Sempre revise: a IA marca "[a confirmar]" onde faltar dado, e o painel *Revisar & gerar* avisa quais campos ainda têm pendência. O uso é cobrado na sua conta da Anthropic.
+## IA conectada (Claude, ChatGPT ou Gemini)
+1. Clique em **⚙ IA** (menu lateral), escolha o provedor, cole a chave da API (Claude: console.anthropic.com · ChatGPT: platform.openai.com · Gemini: aistudio.google.com) e use *Testar conexão*. Cada chave fica só neste computador. *Carregar modelos da minha conta* lista os modelos disponíveis para você escolher.
+2. Dá para usar um provedor para gerar os tópicos e outro para a aba Pesquisa (ex.: Gemini ou ChatGPT na busca, Claude na redação).
+3. No tópico **Briefing & DNA**, cole (ou anexe .txt/.md/.pdf) o briefing, o DNA do Expert, a pesquisa e a call em *Material-base*.
+4. Em cada tópico, **✨ Gerar com IA** preenche o formulário usando o material e o que já foi definido nos outros tópicos. Na tela inicial, **Gerar todos os tópicos pendentes** faz isso em sequência. Mercado e Concorrência usam busca na web (desligável).
+5. Sempre revise: a IA marca "[a confirmar]" onde faltar dado, e o painel *Revisar & gerar* avisa quais campos ainda têm pendência. O uso é cobrado na sua conta de cada provedor.
+
+## Pesquisa com IA (aba própria)
+Menu lateral → **Pesquisa com IA**. O Claude pesquisa na web, com fontes e datas: mercado e TAM·SAM·SOM, concorrentes e brechas, público/dores/linguagem, ofertas e preços, canais e horários, benchmarks e tendências — além de perguntas extras livres. **Pesquisar tudo** roda os 7 temas em sequência (1 a 3 min cada). Os relatórios ficam salvos e são editáveis, entram automaticamente nos prompts de **Gerar com IA** de cada tópico e viram um slide de **Fontes consultadas** na apresentação. Confira os dados antes de apresentar.
 
 ## Tópicos (17)
 Briefing · Presença digital · Mercado · Concorrência · Público · Marca & valores · Expertise · História de origem · Movimento · Esteira · Posicionamento · Conteúdo · Lançamento & e-mail · Projeções & ROI · Plano de ação · Resumo executivo & SWOT · Proposta (opcional).

@@ -33,7 +33,7 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 const DEFAULT_META = () => ({ cliente: '', tagline: '', agencia: 'Mantora Lab', ano: String(new Date().getFullYear()), data: '', estrategista: '', estilo: 'mantora', logoMantora: true, brand: '#582aab', dark: '#400958', accent: '#704bfd', idvPos: 'before', idvExcl: [], off: [] });
 function newProject(name, data) {
   const id = uid(), d = data || {};
-  state.projects[id] = { id, name, meta: { ...DEFAULT_META(), cliente: name, ...(d.meta || {}) }, data: d.data || {}, check: d.check || {} };
+  state.projects[id] = { id, name, meta: { ...DEFAULT_META(), cliente: name, ...(d.meta || {}) }, data: d.data || {}, check: d.check || {}, research: d.research || {} };
   state.cur = id; save(); return id;
 }
 async function switchProject(id) { state.cur = id; save(); await loadAssets(); view = 'home'; render(); }
@@ -78,7 +78,7 @@ function renderNav() {
   const p = P(), nav = $('#nav');
   $('#brandLogo').innerHTML = typeof MANTORA_LOGO !== 'undefined' ? `<svg viewBox="${MANTORA_LOGO.full.vb.join(' ')}"><path d="${MANTORA_LOGO.full.d}"/></svg>` : '<b style="color:#fff;font-size:22px">mantora</b>';
   if (!p) { nav.innerHTML = ''; return; }
-  let h = `<a data-v="home" class="${view === 'home' ? 'on' : ''}"><i>⌂</i>Visão geral & checklist</a><a data-v="projeto" class="${view === 'projeto' ? 'on' : ''}"><i>◐</i>Projeto & IDV<span class="pc ${assets.idv.length ? 'full' : ''}">${assets.idv.length ? assets.idv.length + ' págs' : '—'}</span></a>`;
+  let h = `<a data-v="home" class="${view === 'home' ? 'on' : ''}"><i>⌂</i>Visão geral & checklist</a><a data-v="pesquisa" class="${view === 'pesquisa' ? 'on' : ''}"><i>⌕</i>Pesquisa com IA<span class="pc ${Object.keys(P().research || {}).length >= 5 ? 'full' : ''}">${Object.keys(P().research || {}).length || '—'}</span></a><a data-v="projeto" class="${view === 'projeto' ? 'on' : ''}"><i>◐</i>Projeto & IDV<span class="pc ${assets.idv.length ? 'full' : ''}">${assets.idv.length ? assets.idv.length + ' págs' : '—'}</span></a>`;
   let last = '';
   SECTIONS.forEach(s => {
     if (s.stage !== last) { last = s.stage; h += `<div class="grp">${s.stage}</div>`; }
@@ -100,9 +100,11 @@ function render() {
   if (!P()) { m.innerHTML = welcome(); $('#wNew').onclick = () => $('#newProj').click(); const we = $('#wEx'); if (we) we.onclick = loadExample; return; }
   if (view === 'home') m.innerHTML = homeView();
   else if (view === 'projeto') m.innerHTML = projetoView();
+  else if (view === 'pesquisa') m.innerHTML = pesquisaView();
   else if (view === 'deck') { m.innerHTML = deckView(); initDeck(); }
   else { const s = SECTIONS.find(x => x.id === view); m.innerHTML = sectionView(s); }
   bindMain();
+  if (view === 'pesquisa') bindPesquisa();
 }
 
 /* ---------- Telas ---------- */
@@ -161,8 +163,10 @@ function sectionView(sec) {
 }
 function deckView() {
   const rows = SECTIONS.map(s => { const v = pctSec(s), lo = leftovers(s), off = isOff(s.id); return `<tr><td>${secNum(s)}</td><td><b>${s.title}</b></td><td><span class="chip ${v >= 80 ? 'ok' : v >= 30 ? 'mid' : 'no'}">${v}%</span>${lo ? ` <span class="chip mid" title="Campos com '...' ou [colchetes]">${lo} a revisar</span>` : ''}</td><td><label class="chk" style="padding:0"><input type="checkbox" data-incl="${s.id}" ${off ? '' : 'checked'}><span>incluir</span></label></td><td><button class="btn ghost xs" data-edit="${s.id}">Editar</button></td></tr>`; }).join('');
+  const nsrc = typeof allSources === 'function' ? allSources(P()).length : 0;
+  const rowsX = nsrc ? `<tr><td>⌕</td><td><b>Fontes da pesquisa</b></td><td><span class="chip ok">${nsrc} fontes</span></td><td><label class="chk" style="padding:0"><input type="checkbox" data-incl="pesquisa" ${isOff('pesquisa') ? '' : 'checked'}><span>incluir</span></label></td><td><button class="btn ghost xs" data-edit="pesquisa">Ver</button></td></tr>` : '';
   return `<div class="wrap" style="max-width:1180px">${hero('Etapa final', 'Revisar & gerar', 'Confira o que está pronto, escolha o que entra na apresentação e exporte.', '<button class="btn light" id="dPresent">▶ Apresentar</button><button class="btn dark" id="dPdf">⬇ PDF</button><button class="btn dark" id="dPptx">⬇ PPTX editável (Canva)</button><button class="btn dark" id="dHtml">⬇ HTML</button>')}
-  <div class="box"><h3>Revisão dos tópicos</h3><p class="h">Tópicos vazios ou desmarcados não geram slides.</p><table class="rev">${rows}</table></div>
+  <div class="box"><h3>Revisão dos tópicos</h3><p class="h">Tópicos vazios ou desmarcados não geram slides.</p><table class="rev">${rows}${rowsX}</table></div>
   ${!assets.idv.length ? `<div class="warn">Nenhuma IDV enviada ainda — a apresentação será gerada sem as páginas de identidade visual.</div>` : ''}
   <div class="sticky"><b id="cnt"></b><span class="sp"></span><button class="btn ghost xs" id="dRefresh">↻ Atualizar prévia</button></div>
   <div id="deckList"></div></div>`;
@@ -335,14 +339,14 @@ $('#aiBtn').onclick = openAiSettings;
 $('#projSel').onchange = e => switchProject(e.target.value);
 $('#menuBtn').onclick = () => {
   const o = prompt('Digite o número:\n1 – Exportar projeto (JSON)\n2 – Importar projeto (JSON)\n3 – Carregar exemplo (Adriano Atanes)\n4 – Excluir este cliente');
-  if (o === '1' && P()) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ meta: P().meta, data: P().data, check: P().check }, null, 1)], { type: 'application/json' })); a.download = `projeto_${P().name.replace(/\W+/g, '_')}.json`; a.click(); }
+  if (o === '1' && P()) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ meta: P().meta, data: P().data, check: P().check, research: P().research || {} }, null, 1)], { type: 'application/json' })); a.download = `projeto_${P().name.replace(/\W+/g, '_')}.json`; a.click(); }
   else if (o === '2') $('#importFile').click();
   else if (o === '3') loadExample();
   else if (o === '4' && P() && confirm(`Excluir "${P().name}" e todos os dados? Não dá para desfazer.`)) { const id = P().id; ['idv', 'foto1', 'foto2', 'logo'].forEach(k => idb.del(id + ':' + k)); delete state.projects[id]; state.cur = Object.keys(state.projects)[0] || null; save(); loadAssets().then(() => { view = 'home'; render(); }); }
 };
 $('#importFile').onchange = async e => {
   const f = e.target.files[0]; if (!f) return;
-  try { const o = JSON.parse(await f.text()); newProject(o.meta?.cliente || 'Importado', { meta: { ...o.meta }, data: o.data || {}, check: o.check || {} }); await loadAssets(); view = 'home'; render(); toast('Projeto importado.'); } catch (err) { toast('Arquivo inválido.'); }
+  try { const o = JSON.parse(await f.text()); newProject(o.meta?.cliente || 'Importado', { meta: { ...o.meta }, data: o.data || {}, check: o.check || {}, research: o.research || {} }); await loadAssets(); view = 'home'; render(); toast('Projeto importado.'); } catch (err) { toast('Arquivo inválido.'); }
   e.target.value = '';
 };
 let tT;

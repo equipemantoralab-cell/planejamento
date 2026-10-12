@@ -231,6 +231,13 @@ function buildSlides(P, A) {
     if (ps.length) out.push(sec('dk', `<div class="center"><div class="eb">Próximos passos</div><h2 style="font-size:54px;margin-bottom:34px">Vamos começar</h2>${ul(ps)}</div>`));
   }
 
+  /* ---------- Fontes da pesquisa ---------- */
+  {
+    curBlk = 'fontes';
+    const src = off.includes('pesquisa') || typeof allSources !== 'function' ? [] : allSources(P);
+    chunk(src, 6).forEach((g, i, all) => std('Base da análise', all.length > 1 ? `Fontes consultadas (${i + 1}/${all.length})` : 'Fontes consultadas', 'Dados de mercado, concorrência e público levantados com busca na web. Confira datas e números antes de decisões de investimento.', `<div class="fit" style="gap:10px">${g.map(x => `<div class="kv" style="padding:12px 22px"><div class="k" style="margin-bottom:2px">${esc((x.url || '').replace(/^https?:\/\/(www\.)?/, '').split('/')[0])}</div><div class="v" style="font-size:17px">${esc(String(x.title || x.url).slice(0, 110))}</div></div>`).join('')}</div>`));
+  }
+
   /* ---------- Manifesto ---------- */
   {
     const d = D('movimento'); curBlk = 'manifesto'; const ps = String(d.manifesto || '').split(/\n\s*\n/).map(x => x.trim()).filter(Boolean);
@@ -242,7 +249,7 @@ function buildSlides(P, A) {
     out.push(sec('dk', `<div class="center" style="align-items:center;text-align:center">${A.logo ? `<img src="${A.logo}" style="height:90px;margin-bottom:30px;object-fit:contain">` : ''}<h2 style="font-size:70px">${esc(cli)}</h2>${f ? `<p class="serif" style="font-size:28px;color:var(--accent);margin-top:20px;font-weight:500">${nl(f)}</p>` : ''}<div style="margin-top:44px;display:flex;flex-direction:column;align-items:center;gap:14px">${useLogo ? mlogo(36) : `<p class="lead" style="margin:0;font-size:17px;letter-spacing:.2em;text-transform:uppercase">${esc(m.agencia || '')}</p>`}${m.ano ? `<span style="font-size:15px;letter-spacing:.24em;color:rgba(255,255,255,.6)">${esc(m.ano)}</span>` : ''}</div></div>`));
   }
 
-  const ORD = ['cover', 'agenda', 'resumo', 'briefing', 'diag', 'marca', 'expertise', 'origem', 'movimento', 'mercado', 'conc', 'publico', 'esteira', 'posic', 'conteudo', 'esteira2', 'lancamento', 'projecoes', 'plano', 'proposta', 'manifesto', 'closing'];
+  const ORD = ['cover', 'agenda', 'resumo', 'briefing', 'diag', 'marca', 'expertise', 'origem', 'movimento', 'mercado', 'conc', 'publico', 'esteira', 'posic', 'conteudo', 'esteira2', 'lancamento', 'projecoes', 'plano', 'proposta', 'fontes', 'manifesto', 'closing'];
   const labels = [['Diagnóstico inicial', ['briefing', 'diag']], ['Marca e história de origem', ['marca', 'expertise', 'origem']], ['Movimento: inimigo, crenças e mantras', ['movimento']], ['Mercado e concorrência', ['mercado', 'conc']], ['Público e personas', ['publico']], ['Esteira de produtos', ['esteira', 'esteira2']], ['Posicionamento e canais', ['posic']], ['Estratégia de conteúdo', ['conteudo']], ['Lançamento e e-mail', ['lancamento']], ['Projeções e ROI', ['projecoes']], ['Plano de ação', ['plano']], ['Proposta de implementação', ['proposta']]];
   const present = new Set(items.map(x => x.b)), ag = labels.filter(([, bs]) => bs.some(b => present.has(b)));
   if (ag.length >= 3) { curBlk = 'agenda'; out.push(sec('', `<div class="pad"><div class="eb">Roteiro da apresentação</div><h2>O que vamos ver</h2></div><div class="body"><div class="agenda">${ag.map(([t], i) => `<div class="it"><div class="n">${String(i + 1).padStart(2, '0')}</div><div class="t">${esc(t)}</div></div>`).join('')}</div></div>`)); }
