@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Planejamento Estratégico · Mantora Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@300;400;500;600&family=Source+Serif+4:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
+<style>
+/* Identidade Mantora Lab: roxo profundo, gradientes, tipografia fina em caixa alta */
+:root{--p1:#400958;--p2:#501f8f;--p3:#582aab;--p4:#704bfd;--p5:#6840e1;--bg:#f5f2fb;--ink:#1d1030;--muted:#6f6585;--line:#e4def2;--ok:#12a46b;--r:16px;--hf:'Outfit','Inter',sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:15px}
+button,input,textarea,select{font:inherit;color:inherit}
+#app{display:grid;grid-template-columns:300px 1fr;height:100vh}
+aside{position:relative;background:linear-gradient(185deg,#400958 0%,#2c0640 100%);color:#d9cdf2;display:flex;flex-direction:column;overflow:hidden}
+aside::after{content:"";position:absolute;left:-120px;bottom:-140px;width:360px;height:360px;border-radius:50%;background:radial-gradient(circle at 30% 30%,rgba(112,75,253,.5),rgba(112,75,253,0) 70%);pointer-events:none}
+.brand{padding:26px 24px 18px;position:relative;z-index:1}
+.brand svg{height:30px;display:block;color:#fff;fill:currentColor}
+.brand span{display:block;margin-top:12px;font-size:10.5px;letter-spacing:.3em;text-transform:uppercase;color:#a48ad6}
+.proj{padding:6px 18px 16px;display:flex;flex-direction:column;gap:8px;position:relative;z-index:1}
+.proj select{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:12px;padding:10px 12px;color:#fff;width:100%}
+.proj select option{color:#1d1030}
+.proj .row{display:flex;gap:8px}
+nav{flex:1;overflow:auto;padding:4px 12px 24px;position:relative;z-index:1}
+nav::-webkit-scrollbar{width:6px}nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:9px}
+nav .grp{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#9578d1;margin:18px 10px 6px}
+nav a{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:12px;color:#d9cdf2;cursor:pointer;font-size:14px;line-height:1.25}
+nav a:hover{background:rgba(255,255,255,.07)}
+nav a.on{background:linear-gradient(90deg,rgba(112,75,253,.55),rgba(112,75,253,.18));color:#fff}
+nav a i{font-style:normal;font-family:var(--hf);font-weight:400;min-width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:11.5px;flex:none;letter-spacing:.04em}
+nav a.off{opacity:.45}
+nav a .pc{margin-left:auto;font-size:11px;color:#a48ad6;flex:none}
+nav a .pc.full{color:#7df0c0}
+nav a.gen{background:linear-gradient(135deg,#704bfd,#582aab);color:#fff;margin-top:18px;font-weight:600;box-shadow:0 8px 24px rgba(112,75,253,.35)}
+main{overflow:auto;padding:30px 44px 90px}
+.wrap{max-width:1020px;margin:0 auto}
+.hero{position:relative;overflow:hidden;border-radius:24px;padding:34px 40px 36px;margin-bottom:24px;color:#fff;background:linear-gradient(115deg,#400958 0%,#501f8f 58%,#582aab 100%)}
+.hero .arc{position:absolute;border-radius:50%;pointer-events:none}
+.hero .a1{right:-70px;top:-110px;width:380px;height:380px;background:radial-gradient(circle at 35% 40%,rgba(112,75,253,.65),rgba(112,75,253,0) 68%)}
+.hero .a2{right:120px;bottom:-190px;width:300px;height:300px;border:46px solid rgba(255,255,255,.06)}
+.heroin{position:relative;z-index:1;max-width:760px}
+.hero .eyebrow{font-size:11.5px;letter-spacing:.3em;text-transform:uppercase;color:#c6b4f5;margin-bottom:14px}
+.hero h1{margin:0;font-family:var(--hf);font-weight:300;font-size:40px;line-height:1.08;letter-spacing:.015em;text-transform:uppercase}
+.hero p{margin:14px 0 0;color:#dacdf6;font-size:15.5px;max-width:640px}
+.hero .heroact{position:relative;z-index:1;margin-top:20px;display:flex;gap:10px;flex-wrap:wrap}
+.btn{border:0;border-radius:12px;padding:10px 17px;background:var(--p4);color:#fff;font-weight:600;cursor:pointer;font-size:14px;transition:.15s}
+.btn:hover{background:var(--p5)}
+.btn.ghost{background:#fff;color:var(--p1);border:1px solid var(--line)}
+.btn.ghost:hover{background:#f1ebff}
+.btn.dark{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2)}
+.btn.dark:hover{background:rgba(255,255,255,.18)}
+.btn.light{background:#fff;color:var(--p1)}
+.btn.danger{background:#fff;color:#c43a56;border:1px solid #f0c9d2}
+.btn.xs{padding:6px 11px;font-size:12.5px;border-radius:10px}
+.box{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:22px 24px;margin-bottom:18px}
+.box h3{margin:0 0 4px;font-size:15.5px;font-weight:600}
+.box p.h{margin:0 0 14px;color:var(--muted);font-size:13.5px}
+label.l{display:block;font-weight:600;font-size:13px;margin:18px 0 6px}
+label.l small{display:block;font-weight:400;color:var(--muted);margin-top:2px}
+input[type=text],textarea,select.f{width:100%;border:1px solid var(--line);border-radius:12px;padding:10px 13px;background:#fff;outline:none}
+input[type=text]:focus,textarea:focus{border-color:var(--p4);box-shadow:0 0 0 3px rgba(112,75,253,.16)}
+textarea{resize:vertical;min-height:70px;line-height:1.45}
+input[type=color]{padding:2px;height:42px;width:70px;cursor:pointer;border:1px solid var(--line);border-radius:10px;background:#fff}
+.rowc{border:1px solid var(--line);border-radius:14px;padding:16px 14px 14px;margin-bottom:12px;background:#faf8ff;position:relative}
+.rowc .rn{position:absolute;top:-10px;left:14px;background:var(--p3);color:#fff;border-radius:99px;font-size:11px;padding:1px 9px;font-weight:700}
+.rowc .rx{position:absolute;top:8px;right:8px}
+.cols{display:grid;gap:10px}
+.cols .c label{font-size:11.5px;font-weight:600;color:var(--muted);margin-bottom:4px;display:block}
+.cols .c textarea{min-height:56px}
+.tools{background:linear-gradient(135deg,#f3eeff,#efe9ff 60%,#e7f0ff);border:1px solid #d9ccff}
+.tools textarea{background:#fff;font-size:12.5px}
+.chip{display:inline-block;font-size:11.5px;padding:3px 11px;border-radius:99px;background:#eee8ff;color:var(--p3);font-weight:600}
+.chip.ok{background:#dcf7ec;color:#0b7a50}.chip.mid{background:#fff1d6;color:#9a6700}.chip.no{background:#f1ecf7;color:#7c6f92}
+.prog{height:8px;background:#ebe5f7;border-radius:99px;overflow:hidden}
+.prog>div{height:100%;background:linear-gradient(90deg,#704bfd,#a68bff)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.stat{font-family:var(--hf);font-weight:300;font-size:46px;line-height:1;margin-top:12px}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:7px 0;cursor:pointer;font-size:14px}
+.chk input{margin-top:3px;accent-color:var(--p4);width:17px;height:17px;flex:none}
+.chk.done span{color:var(--muted);text-decoration:line-through}
+.photos{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.ph{border:1.5px dashed #c9bbec;border-radius:14px;padding:14px;text-align:center;background:#faf8ff}
+.ph img{max-width:100%;max-height:110px;border-radius:8px;display:block;margin:0 auto 8px}
+.ph b{display:block;font-size:13px;margin-bottom:6px}
+.idvgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:14px}
+.idvgrid div{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:#000;aspect-ratio:16/9}
+.idvgrid img{width:100%;height:100%;object-fit:contain}
+.idvgrid .x{position:absolute;top:4px;right:4px}
+.idvgrid .off img{opacity:.25}
+.idvgrid span{position:absolute;left:5px;bottom:4px;font-size:10px;color:#fff;background:rgba(0,0,0,.55);padding:1px 6px;border-radius:6px}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#2c0640;color:#fff;padding:12px 22px;border-radius:14px;font-size:14px;z-index:99;box-shadow:0 10px 30px rgba(44,6,64,.4);max-width:90vw}
+.sw{width:100%;height:calc(810px*var(--k,.6));position:relative;margin-bottom:18px;border-radius:12px;overflow:hidden;box-shadow:0 8px 28px rgba(64,9,88,.18);background:#fff}
+.sw .slide{position:absolute;left:0;top:0;transform:scale(var(--k,.6));transform-origin:0 0}
+.sw .no{position:absolute;right:8px;top:8px;z-index:3;background:rgba(44,6,64,.7);color:#fff;font-size:11px;padding:2px 9px;border-radius:99px}
+.sw .nt{position:absolute;left:8px;top:8px;z-index:3;background:#704bfd;color:#fff;font-size:11px;padding:2px 9px;border-radius:99px}
+.warn{background:#fff7e6;border:1px solid #f3dca0;border-radius:14px;padding:12px 16px;margin-bottom:16px;font-size:13.5px}
+table.rev{width:100%;border-collapse:collapse;font-size:14px}
+table.rev td{padding:9px 8px;border-top:1px solid var(--line);vertical-align:middle}
+table.rev td:first-child{width:36px;color:var(--muted);font-family:var(--hf)}
+.sticky{position:sticky;top:-30px;z-index:5;background:var(--bg);padding:12px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.sticky .sp{flex:1}
+#present{position:fixed;inset:0;background:#000;z-index:200;display:none;align-items:center;justify-content:center}
+#present.on{display:flex}
+#present .stage{position:relative;overflow:hidden}
+#present .stage .slide{position:absolute;left:0;top:0;transform-origin:0 0}
+#present .hint{position:fixed;bottom:8px;left:50%;transform:translateX(-50%);color:#888;font-size:12px}
+#present .nts{position:fixed;left:0;right:0;bottom:0;background:rgba(20,6,34,.94);color:#fff;padding:18px 40px 34px;font-size:18px;line-height:1.5;display:none;max-height:38vh;overflow:auto;z-index:3}
+#printDeck{display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media print{
+ @page{size:1440px 810px;margin:0}
+ html,body{height:auto;background:#fff}
+ #app,#present,.toast{display:none!important}
+ #printDeck{display:block}
+ #printDeck .slide{page-break-after:always;break-after:page}
+}
+@media(max-width:900px){#app{grid-template-columns:1fr}aside{display:none}.grid2,.photos{grid-template-columns:1fr}main{padding:18px}.hero h1{font-size:28px}}
+</style>
+<style id="deckcss"></style>
+</head>
+<body>
+<div id="app">
+  <aside>
+    <div class="brand"><div id="brandLogo"></div><span>Planejamento Estratégico</span></div>
+    <div class="proj">
+      <select id="projSel"></select>
+      <div class="row"><button class="btn dark xs" id="newProj">+ Novo cliente</button><button class="btn dark xs" id="aiBtn">⚙ IA</button><button class="btn dark xs" id="menuBtn">⋯ Mais</button></div>
+    </div>
+    <nav id="nav"></nav>
+  </aside>
+  <main id="main"></main>
+</div>
+<div id="present"><div class="stage" id="stage"></div><div class="nts" id="nts"></div><div class="hint">← → navegar · N notas de fala · Esc sair</div></div>
+<div id="printDeck"></div>
+<input type="file" id="importFile" accept=".json" hidden>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<script src="js/logo.js"></script>
+<script src="js/deckcss.js"></script>
+<script src="js/schema.js"></script>
+<script src="js/schema2.js"></script>
+<script src="js/slides.js"></script>
+<script src="js/exemplo.js"></script>
+<script src="js/exemplo2.js"></script>
+<script src="js/pptx.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
