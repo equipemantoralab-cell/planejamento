@@ -119,7 +119,10 @@ function homeView() {
   return `<div class="wrap">${hero(esc(p.meta.agencia || 'Mantora Lab'), esc(p.name), 'Preencha os tópicos do menu na ordem, envie a IDV e gere a apresentação. Cada tópico traz um prompt pronto para o Claude devolver o conteúdo em JSON — é só colar.', '<button class="btn light" id="goNext">Continuar de onde parou →</button>')}
   <div class="grid2"><div class="box"><h3>Conteúdo preenchido</h3><p class="h">${filledN} de ${SECTIONS.length} tópicos com mais de 60%</p><div class="prog"><div style="width:${tot}%"></div></div><div class="stat">${tot}%</div></div>
   <div class="box"><h3>Checklist do processo</h3><p class="h">Etapas da planilha executiva</p><div class="prog"><div style="width:${Math.round(done / all * 100)}%"></div></div><div class="stat">${done}/${all}</div></div></div>
-  <div class="box tools"><h3>① Contextualizar o Claude</h3><p class="h">Antes de rodar os prompts dos tópicos, crie o projeto do cliente no Claude, suba os arquivos (briefing, DNA do Expert, pesquisa de mercado, call) e cole este prompt. Ele se atualiza com os dados do tópico <b>Briefing & DNA</b>.</p><textarea id="ctxBox" readonly rows="6">${esc(contextPrompt(p))}</textarea><div style="margin-top:10px"><button class="btn ghost xs" id="cpCtx">Copiar prompt de contexto</button></div></div>
+  <details class="box tools"><summary style="cursor:pointer;font-weight:600;font-size:15.5px">Só para o modo manual: apresentar o cliente ao Claude (chat do claude.ai)</summary>
+  <p class="h" style="margin-top:10px"><b>Você só precisa disto se for rodar os prompts num chat do Claude, sem a API.</b> Com o botão <b>Gerar com IA</b> o app já envia o contexto sozinho e você pode ignorar esta caixa.</p>
+  <p class="h">No modo manual: 1) crie um projeto do cliente no Claude; 2) anexe os arquivos — briefing, DNA do Expert, a call e o <b>resultado</b> da pesquisa de mercado (o prompt da pesquisa fica na aba <b>Pesquisa com IA</b>; o arquivo sai em <b>Pacote .md</b>); 3) cole o texto abaixo, que usa os dados do tópico <b>Briefing & DNA</b>.</p>
+  <textarea id="ctxBox" readonly rows="6">${esc(contextPrompt(p))}</textarea><div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost xs" id="cpCtx">Copiar texto de apresentação</button><button class="btn ghost xs" id="goPesq">Ir para Pesquisa com IA →</button></div></details>
   <div class="box" style="background:linear-gradient(120deg,#400958,#582aab);color:#fff;border:0"><h3 style="font-size:17px">✨ Preencher tudo com IA</h3><p class="h" style="color:#dacdf6">Cole o material do cliente no tópico <b>Briefing & DNA</b> e deixe o Claude gerar todos os tópicos pendentes, em ordem, mantendo a coerência entre eles. ${AI.has(AI.provider) ? 'IA conectada.' : 'Antes, conecte uma IA em ⚙ IA — ou use o modo manual de cada tópico, sem custo de API.'}</p><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn light" id="aiAll">Gerar todos os tópicos pendentes</button><button class="btn dark" id="aiSet">⚙ Configurar IA</button></div></div>
   ${costTipsHtml()}
   <div class="box"><h3>Uso de IA neste cliente</h3>${aiUsageHtml(p)}</div>
@@ -266,6 +269,7 @@ function bindMain() {
   if (view === 'home') {
     const g = $('#goNext'); if (g) g.onclick = () => { const s = SECTIONS.find(x => pctSec(x) < 60); go(!assets.idv.length && !s ? 'projeto' : s ? s.id : 'deck'); };
     const ga = $('#aiAll'); if (ga) ga.onclick = aiFillAll; const gs = $('#aiSet'); if (gs) gs.onclick = openAiSettings;
+    const gp = $('#goPesq'); if (gp) gp.onclick = () => go('pesquisa');
     const c = $('#cpCtx'); if (c) c.onclick = () => navigator.clipboard.writeText($('#ctxBox').value).then(() => toast('Contexto copiado! Cole no Claude do projeto.'));
   }
   const sec = SECTIONS.find(s => s.id === view);
