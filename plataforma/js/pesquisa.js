@@ -80,9 +80,9 @@ function researchForPrompt(P_, secId) {
   ids.sort((a, b) => prio(a) - prio(b));
   let out = sp ? `### Sprint de inteligência real (coletado à mão — prioridade)\n${sp.slice(0, 12000)}\n` : '', total = out.length;
   for (const id of ids) {
-    const m = RESEARCH.find(x => x.id === id), t = `### ${m ? m.title : rs[id].title}\n${rs[id].text}\n`, cap = prio(id) === 0 ? 14000 : 4500;
+    const m = RESEARCH.find(x => x.id === id), t = `### ${m ? m.title : rs[id].title}\n${rs[id].text}\n`, cap = prio(id) === 0 ? (AI.eco ? 6000 : 14000) : (AI.eco ? 2000 : 4500);
     const part = t.length > cap ? t.slice(0, cap) + '…' : t;
-    if (total + part.length > 40000) break;
+    if (total + part.length > (AI.eco ? 14000 : 40000)) break;
     out += part; total += part.length;
   }
   return out;
@@ -109,12 +109,12 @@ function mdToHtml(src) {
 }
 
 /* ---- Execução (com cruzamento opcional entre duas IAs) ---- */
-const altProviders = () => Object.keys(PROVIDERS).filter(p => p !== researchProvider() && AI.keyFor(p));
+const altProviders = () => Object.keys(PROVIDERS).filter(p => p !== researchProvider() && AI.has(p));
 async function runResearch(id, customAsk, customTitle) {
-  if (!AI.keyFor(researchProvider())) { openAiSettings(); return false; }
+  if (!AI.has(researchProvider())) { openAiSettings(); return false; }
   const p = P(), mod = RESEARCH.find(x => x.id === id), ask = customAsk || (mod && mod.ask), title = customTitle || (mod && mod.title) || id;
   const prompt = researchPrompt(ask, p), prim = researchProvider();
-  const one = async prov => { const text = await aiCall(prompt, { web: true, system: RES_SYSTEM, maxTokens: 12000, maxUses: 8, provider: prov }); return { prov, text: text.trim(), sources: AI.lastSources.slice(), web: !AI.lastNoWeb && AI.lastSources.length > 0 }; };
+  const one = async prov => { const text = await aiCall(prompt, { web: true, system: RES_SYSTEM, maxTokens: AI.eco ? 8000 : 12000, maxUses: AI.eco ? 4 : 8, provider: prov }); return { prov, text: text.trim(), sources: AI.lastSources.slice(), web: !AI.lastNoWeb && AI.lastSources.length > 0 }; };
   const cross = AI.cross && altProviders().length;
   if (!cross) {
     const a = await one(prim); if (!a.text) throw new Error('A IA não devolveu texto. Tente novamente.');
@@ -133,7 +133,7 @@ async function runResearch(id, customAsk, customTitle) {
   resStore(p)[id] = { title, ask: customAsk || '', text: text + note, sources, at: Date.now(), web: ok.some(r => r.web), by: ok.map(r => r.prov), versions: ok.map(r => ({ prov: r.prov, text: r.text })) }; save(); return true;
 }
 async function runResearchOne(id, customAsk, customTitle) {
-  if (!AI.keyFor(researchProvider())) { openAiSettings(); return; }
+  if (!AI.has(researchProvider())) { openAiSettings(); return; }
   if (AI.busy) return toast('Já existe uma geração em andamento.');
   const mod = RESEARCH.find(x => x.id === id), cross = AI.cross && altProviders().length;
   AI.busy = true; aiStatus(`Pesquisando: ${customTitle || mod.title}${cross ? ' (2 IAs + consolidação)' : ''}… (1 a 6 minutos)`);
@@ -142,7 +142,7 @@ async function runResearchOne(id, customAsk, customTitle) {
   AI.busy = false; aiStatus(null); render();
 }
 async function runResearchAll(force) {
-  if (!AI.keyFor(researchProvider())) { openAiSettings(); return; }
+  if (!AI.has(researchProvider())) { openAiSettings(); return; }
   if (AI.busy) return toast('Já existe uma geração em andamento.');
   const rs = resStore(P()), todo = RESEARCH.filter(m => force || !(rs[m.id] && rs[m.id].text));
   if (!todo.length) return toast('Todas as pesquisas já foram feitas. Use "Refazer" em uma delas, se quiser atualizar.');
@@ -171,21 +171,32 @@ const VALIDATION = [
 const VAL_KEYS = VALIDATION.flatMap(v => v.items.map(i => i[0]));
 function validationProgress(P_) { const v = P_.validation || {}; return { done: VAL_KEYS.filter(k => v[k]).length, total: VAL_KEYS.length }; }
 
+function auditPrompt(p) {
+  const rs = resStore(p), ids = Object.keys(rs).filter(k => rs[k].text);
+  const body = ids.map(id => `### ${(RESEARCH.find(m => m.id === id) || rs[id]).title}\n${rs[id].text.slice(0, AI.eco ? 3000 : 7000)}`).join('\n\n').slice(0, AI.eco ? 30000 : 70000);
+  const items = VALIDATION.flatMap(v => v.items.map(([k, t]) => `${k}: [${v.g}] ${t}`)).join('\n'), sp = sprintMd(p);
+  return `Você é auditor(a) de pesquisa de mercado. Avalie o material abaixo contra o checklist de validação. Seja cético: procure concorrentes possivelmente inexistentes, números sem fonte, TAM/SOM irreais para o porte do cliente, frases que não soam como o público fala e qualquer dado que pareça inventado. Cruze com o sprint manual quando houver.\n\nCLIENTE: ${p.meta.cliente}\n\nCHECKLIST:\n${items}\n\nMATERIAL:\n${body}\n\n${sp ? `SPRINT MANUAL (dados reais):\n${sp.slice(0, 8000)}\n\n` : ''}Responda APENAS com JSON: {"itens":[{"k":"c1","status":"ok"|"atencao","nota":"1 frase com o motivo"}]} — um objeto para cada chave do checklist.`;
+}
+function applyAudit(p, text) {
+  const a = text.indexOf('{'), b = text.lastIndexOf('}'), j = JSON.parse(text.slice(a, b + 1)); p.audit = {};
+  (j.itens || []).forEach(x => { if (VAL_KEYS.includes(x.k)) p.audit[x.k] = { status: x.status === 'ok' ? 'ok' : 'atencao', nota: String(x.nota || '') }; });
+  save(); toast(`Auditoria aplicada: ${Object.values(p.audit).filter(x => x.status !== 'ok').length} ponto(s) de atenção.`);
+}
+function extractSources(text) {
+  const seen = new Set(), out = [];
+  String(text).replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, (m, ti, u) => { if (!seen.has(u)) { seen.add(u); out.push({ title: ti, url: u }); } return m; });
+  String(text).replace(/https?:\/\/[^\s<>)\]]+/g, u => { u = u.replace(/[.,;]+$/, ''); if (!seen.has(u)) { seen.add(u); out.push({ title: u.replace(/^https?:\/\/(www\.)?/, '').slice(0, 80), url: u }); } return u; });
+  return out;
+}
 async function runAudit() {
-  if (!AI.keyFor(researchProvider())) { openAiSettings(); return; }
+  if (!AI.has(researchProvider())) { openAiSettings(); return; }
   if (AI.busy) return toast('Já existe uma geração em andamento.');
   const p = P(), rs = resStore(p), ids = Object.keys(rs).filter(k => rs[k].text);
   if (!ids.length) return toast('Faça a pesquisa antes de auditar.');
   AI.busy = true; aiStatus('Auditando a pesquisa em busca de dados suspeitos…');
   try {
-    const body = ids.map(id => `### ${(RESEARCH.find(m => m.id === id) || rs[id]).title}\n${rs[id].text.slice(0, 7000)}`).join('\n\n').slice(0, 70000);
-    const items = VALIDATION.flatMap(v => v.items.map(([k, t]) => `${k}: [${v.g}] ${t}`)).join('\n');
-    const sp = sprintMd(p);
-    const prompt = `Você é auditor(a) de pesquisa de mercado. Avalie o material abaixo contra o checklist de validação. Seja cético: procure concorrentes possivelmente inexistentes, números sem fonte, TAM/SOM irreais para o porte do cliente, frases que não soam como o público fala e qualquer dado que pareça inventado. Cruze com o sprint manual quando houver.\n\nCLIENTE: ${p.meta.cliente}\n\nCHECKLIST:\n${items}\n\nMATERIAL:\n${body}\n\n${sp ? `SPRINT MANUAL (dados reais):\n${sp.slice(0, 8000)}\n\n` : ''}Responda APENAS com JSON: {"itens":[{"k":"c1","status":"ok"|"atencao","nota":"1 frase com o motivo"}]} — um objeto para cada chave do checklist.`;
-    const text = await aiCall(prompt, { web: false, system: AI_SYSTEM, maxTokens: 6000, provider: researchProvider() });
-    const a = text.indexOf('{'), b = text.lastIndexOf('}'), j = JSON.parse(text.slice(a, b + 1)); p.audit = {};
-    (j.itens || []).forEach(x => { if (VAL_KEYS.includes(x.k)) p.audit[x.k] = { status: x.status === 'ok' ? 'ok' : 'atencao', nota: String(x.nota || '') }; });
-    save(); toast(`Auditoria concluída: ${Object.values(p.audit).filter(x => x.status !== 'ok').length} ponto(s) de atenção.`);
+    const text = await aiCall(auditPrompt(p), { web: false, system: AI_SYSTEM, maxTokens: 6000, provider: researchProvider() });
+    applyAudit(p, text);
   } catch (e) { toast('IA: ' + (e.message || e)); }
   AI.busy = false; aiStatus(null); render();
 }
@@ -196,15 +207,17 @@ function pesquisaView() {
   const done = RESEARCH.filter(m => rs[m.id] && rs[m.id].text).length, nsrc = allSources(p).length, vp = validationProgress(p), sp = sprintStatus(p), alts = altProviders();
   const card = (id, title, icon, feeds, r) => {
     const has = r && r.text, when = has ? new Date(r.at).toLocaleDateString('pt-BR') : '';
-    const by = has && r.by && r.by.length > 1 ? ` · cruzada: ${r.by.map(x => PROVIDERS[x] ? PROVIDERS[x].short : x).join(' + ')}` : (has && r.by && r.by[0] && PROVIDERS[r.by[0]] ? ` · ${PROVIDERS[r.by[0]].short}` : '');
-    return `<div class="box" data-rc="${id}"><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><div style="font-size:18px;width:36px;height:36px;border-radius:10px;background:#eee8ff;color:#582aab;display:flex;align-items:center;justify-content:center">${icon}</div><div style="flex:1;min-width:200px"><h3 style="margin:0">${esc(title)}</h3><div style="font-size:12.5px;color:var(--muted)">${has ? `${r.sources.length} fonte(s) · ${when}${by}${r.web ? '' : ' · <b style="color:#9a6700">sem busca na web — confirme os dados</b>'}` : 'Ainda não pesquisado'}${feeds && feeds.length ? ` · alimenta: ${feeds.map(f => (SECTIONS.find(s => s.id === f) || { title: f }).title).join(', ')}` : ''}</div></div>
-    <button class="btn ${has ? 'ghost' : ''} xs" data-run="${id}">${has ? '↻ Refazer' : '⌕ Pesquisar'}</button>${has ? `<button class="btn ghost xs" data-tog="${id}">Ver relatório</button>` : ''}${has && !RES_IDS.includes(id) ? `<button class="btn danger xs" data-delres="${id}">Excluir</button>` : ''}</div>
+    const by = has && r.manual ? '' : has && r.by && r.by.length > 1 ? ` · cruzada: ${r.by.map(x => PROVIDERS[x] ? PROVIDERS[x].short : x).join(' + ')}` : (has && r.by && r.by[0] && PROVIDERS[r.by[0]] ? ` · ${PROVIDERS[r.by[0]].short}` : '');
+    return `<div class="box" data-rc="${id}"><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><div style="font-size:18px;width:36px;height:36px;border-radius:10px;background:#eee8ff;color:#582aab;display:flex;align-items:center;justify-content:center">${icon}</div><div style="flex:1;min-width:200px"><h3 style="margin:0">${esc(title)}</h3><div style="font-size:12.5px;color:var(--muted)">${has ? `${r.sources.length} fonte(s) · ${when}${by}${r.manual ? ' · colado manualmente' : (r.web ? '' : ' · <b style="color:#9a6700">sem busca na web — confirme os dados</b>')}` : 'Ainda não pesquisado'}${feeds && feeds.length ? ` · alimenta: ${feeds.map(f => (SECTIONS.find(s => s.id === f) || { title: f }).title).join(', ')}` : ''}</div></div>
+    <button class="btn ${has ? 'ghost' : ''} xs" data-run="${id}">${has ? '↻ Refazer' : '⌕ Pesquisar'}</button><button class="btn ghost xs" data-cp="${id}" title="Copia o prompt para rodar no seu ChatGPT, Claude, Gemini ou Perplexity">📋 Copiar prompt</button><button class="btn ghost xs" data-pastetog="${id}">📥 Colar relatório</button>${has ? `<button class="btn ghost xs" data-tog="${id}">Ver relatório</button>` : ''}${has && !RES_IDS.includes(id) ? `<button class="btn danger xs" data-delres="${id}">Excluir</button>` : ''}</div>
+    <div id="paste_${id}" style="display:none;margin-top:12px"><textarea data-pastetxt="${id}" rows="8" placeholder="Cole aqui o relatório que a IA gerou (com os links das fontes)…" style="font-size:13px"></textarea><div style="margin-top:8px"><button class="btn xs" data-pastesave="${id}">Salvar relatório</button></div></div>
     ${has ? `<div id="rep_${id}" style="display:none;margin-top:14px"><div class="chip" style="margin-bottom:8px">Você pode editar o texto abaixo; ele alimenta os tópicos</div><textarea data-restext="${id}" rows="14" style="font-size:13px">${esc(r.text)}</textarea><div style="margin-top:12px;font-size:14px;line-height:1.5;border-top:1px solid var(--line);padding-top:6px">${mdToHtml(r.text)}</div>${r.versions ? `<details style="margin-top:10px"><summary style="cursor:pointer;font-weight:600;font-size:13px">Versões originais de cada IA (antes da consolidação)</summary>${r.versions.map(v => `<div style="margin-top:10px"><span class="chip">${PROVIDERS[v.prov] ? PROVIDERS[v.prov].name : v.prov}</span><div style="font-size:13.5px;line-height:1.5">${mdToHtml(v.text)}</div></div>`).join('')}</details>` : ''}${r.sources.length ? `<div style="margin-top:10px"><b style="font-size:13px">Fontes consultadas</b><ul style="font-size:13px;padding-left:18px;margin:6px 0">${r.sources.map(s => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(String(s.title).slice(0, 100))}</a></li>`).join('')}</ul></div>` : ''}</div>` : ''}</div>`;
   };
   const groups = ['Núcleo (Anexo A)', 'Complementares'];
   const valHtml = VALIDATION.map(v => `<div style="margin-top:10px"><div class="sm" style="font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--p3);font-weight:700">${v.g}</div>${v.items.map(([k, t]) => { const a = (p.audit || {})[k]; return `<label class="chk ${(p.validation || {})[k] ? 'done' : ''}"><input type="checkbox" data-val="${k}" ${(p.validation || {})[k] ? 'checked' : ''}><span>${esc(t)}${a ? `<br><span class="chip ${a.status === 'ok' ? 'ok' : 'mid'}" style="margin-top:3px">${a.status === 'ok' ? 'IA: ok' : 'IA: atenção'} — ${esc(a.nota)}</span>` : ''}</span></label>`; }).join('')}</div>`).join('');
   return `<div class="wrap">${hero('Etapa 2 · Mercado', 'Pesquisa com IA', 'Segue o POP de pesquisa da Mantora: pesquisa na web com fontes (prompt do Anexo A), cruzamento entre IAs, sprint manual de inteligência real e checklist de validação. O resultado alimenta a geração dos tópicos.', `<button class="btn light" id="resAll">⌕ Pesquisar tudo</button><button class="btn dark" id="resSet">⚙ Configurar IA</button><button class="btn dark" id="resMd">⬇ Pacote .md (Manus/Claude)</button>`)}
-  ${!AI.keyFor(researchProvider()) ? `<div class="warn"><b>Conecte a IA primeiro:</b> clique em <b>⚙ Configurar IA</b> e cole sua chave (Claude, ChatGPT ou Gemini). Pesquisa agora: <b>${PROVIDERS[researchProvider()].name}</b>. A busca na web precisa estar ligada para trazer fontes atuais.</div>` : ''}
+  ${!AI.has(researchProvider()) ? `<div class="warn"><b>Sem IA conectada.</b> Você pode <b>conectar uma IA</b> em <b>⚙ Configurar IA</b> (Claude, ChatGPT, Gemini ou uma IA local) <b>ou usar o modo manual, sem custo de API</b>: em cada tema clique em <i>Copiar prompt</i>, rode no seu ChatGPT/Claude/Gemini/Perplexity e cole o resultado em <i>Colar relatório</i>. Pesquisa agora: <b>${PROVIDERS[researchProvider()].name}</b>. A busca na web precisa estar ligada para trazer fontes atuais.</div>` : ''}
+  ${costTipsHtml()}
   <div class="grid2"><div class="box"><h3>Pesquisas concluídas</h3><p class="h">${done} de ${RESEARCH.length} temas · ${nsrc} fonte(s)</p><div class="prog"><div style="width:${Math.round(done / RESEARCH.length * 100)}%"></div></div></div>
   <div class="box"><h3>Validação de qualidade</h3><p class="h">${vp.done} de ${vp.total} itens do checklist</p><div class="prog"><div style="width:${Math.round(vp.done / vp.total * 100)}%"></div></div></div></div>
   <div class="box tools"><h3>Cruzar com duas IAs (etapa 2 do POP)</h3><p class="h">Roda cada pesquisa em duas IAs diferentes e consolida o melhor das duas, destacando divergências de números e fatos — como o POP pede (Claude/Perplexity + ChatGPT).</p>
@@ -215,7 +228,7 @@ function pesquisaView() {
   <h3 style="margin:26px 0 10px;font-family:var(--hf);font-weight:400;letter-spacing:.14em;text-transform:uppercase;font-size:13px;color:var(--p3)">Sprint de inteligência real (manual)</h3>
   <div class="box"><h3>Dados reais coletados à mão</h3><p class="h">Passo mais crítico do POP: Meta Ads Library, comentários dos concorrentes, Reclame Aqui e YouTube. A IA usa esses dados com prioridade sobre qualquer inferência.</p>${sp.map(c => `<span class="chip ${c.ok ? 'ok' : 'mid'}" style="margin:0 6px 6px 0">${c.ok ? '✓' : '○'} ${esc(c.t)}</span>`).join('')}<div style="margin-top:12px"><button class="btn ghost xs" id="goSprint">Abrir o Sprint de inteligência real →</button></div></div>
   <h3 style="margin:26px 0 10px;font-family:var(--hf);font-weight:400;letter-spacing:.14em;text-transform:uppercase;font-size:13px;color:var(--p3)">Validação de qualidade (Anexo B)</h3>
-  <div class="box"><h3>Checklist de validação da pesquisa inicial</h3><p class="h">Percorra cada item e marque ✓ depois de conferir. Antes de gerar os tópicos o app avisa se o checklist estiver incompleto.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn xs" id="runAudit">✨ Auditar com IA (procurar dados suspeitos)</button></div>${valHtml}</div>
+  <div class="box"><h3>Checklist de validação da pesquisa inicial</h3><p class="h">Percorra cada item e marque ✓ depois de conferir. Antes de gerar os tópicos o app avisa se o checklist estiver incompleto.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn xs" id="runAudit">✨ Auditar com IA (procurar dados suspeitos)</button><button class="btn ghost xs" id="cpAudit">📋 Copiar prompt da auditoria</button><button class="btn ghost xs" id="pasteAuditTog">📥 Colar resposta da auditoria</button></div><div id="auditPaste" style="display:none;margin-top:10px"><textarea id="auditTxt" rows="5" placeholder='Cole o JSON {"itens":[...]} que a IA devolveu…'></textarea><div style="margin-top:8px"><button class="btn xs" id="auditSave">Aplicar auditoria</button></div></div>${valHtml}</div>
   <div style="display:flex;justify-content:flex-end"><button class="btn" id="resGen">Gerar tópicos com esta pesquisa →</button></div></div>`;
 }
 function bindPesquisa() {
@@ -225,6 +238,12 @@ function bindPesquisa() {
   $('#resMd').onclick = () => typeof exportMdPack === 'function' && exportMdPack();
   $('#goSprint').onclick = () => go('sprint');
   $('#runAudit').onclick = runAudit;
+  $('#cpAudit').onclick = () => { if (!Object.values(resStore(p)).some(r => r.text)) return toast('Faça ou cole a pesquisa antes de auditar.'); navigator.clipboard.writeText(auditPrompt(p)).then(() => toast('Prompt da auditoria copiado. Rode na sua IA e cole a resposta.')); };
+  $('#pasteAuditTog').onclick = () => { const e = $('#auditPaste'); e.style.display = e.style.display === 'none' ? 'block' : 'none'; };
+  $('#auditSave').onclick = () => { try { applyAudit(p, $('#auditTxt').value); render(); } catch (e) { toast('Não consegui ler o JSON. Cole a resposta completa da IA.'); } };
+  m.querySelectorAll('[data-cp]').forEach(b => b.onclick = () => { const id = b.dataset.cp, mod = RESEARCH.find(x => x.id === id), r = resStore(p)[id], ask = mod ? mod.ask : (r && r.ask) || ''; navigator.clipboard.writeText(RES_SYSTEM + '\n\n' + researchPrompt(ask, p)).then(() => toast('Prompt copiado! Cole no ChatGPT, Claude, Gemini ou Perplexity (com busca ativa) e traga o relatório de volta em "Colar relatório".')); });
+  m.querySelectorAll('[data-pastetog]').forEach(b => b.onclick = () => { const e = document.getElementById('paste_' + b.dataset.pastetog); e.style.display = e.style.display === 'none' ? 'block' : 'none'; });
+  m.querySelectorAll('[data-pastesave]').forEach(b => b.onclick = () => { const id = b.dataset.pastesave, v = m.querySelector(`[data-pastetxt="${id}"]`).value.trim(); if (!v) return toast('Cole o relatório primeiro.'); const mod = RESEARCH.find(x => x.id === id), old = resStore(p)[id]; resStore(p)[id] = { title: (mod && mod.title) || (old && old.title) || id, ask: (old && old.ask) || '', text: v, sources: extractSources(v), at: Date.now(), web: true, manual: true, by: ['manual'] }; save(); toast('Relatório salvo (colado manualmente). Confira as fontes.'); render(); });
   const cc = $('#crossChk'); if (cc) cc.onchange = () => { AI.cross = cc.checked; };
   $('#resGen').onclick = () => { const vp = validationProgress(p); if (vp.done < vp.total && !confirm(`O checklist de validação está em ${vp.done}/${vp.total}. O POP manda validar a pesquisa antes de seguir. Gerar os tópicos mesmo assim?`)) return; go('home'); setTimeout(aiFillAll, 50); };
   m.querySelectorAll('[data-run]').forEach(b => b.onclick = () => { const id = b.dataset.run, r = resStore(p)[id]; runResearchOne(id, r && !RES_IDS.includes(id) ? r.ask : undefined, r && !RES_IDS.includes(id) ? r.title : undefined); });

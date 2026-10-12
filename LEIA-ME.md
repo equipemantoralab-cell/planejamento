@@ -24,6 +24,12 @@ Menu lateral → **Pesquisa com IA**. Reproduz o POP "Pesquisa de mercado, taman
 4. **Checklist de validação** (Anexo B) com botão *Auditar com IA*. Antes de gerar os tópicos o app avisa se o checklist não estiver completo.
 5. **Pacote .md** (botão na aba e na tela de revisão): ZIP com 01_Briefing e 02_Estratégia e os nomes do POP (Pesquisa de Mercado Inicial, 02_Análise da Concorrência, 03_Análise de Mercado, 04_0 Público-Alvo Base, 04.1–04.3 Personas, 05_0 Gênesis, 06 Ideação, 07 Posicionamento, 08 Conteúdo). No Windows o "|" do nome vira " - "; o título do Drive vai no começo de cada arquivo.
 
+## Custo de IA e alternativas sem API
+- **Contador de uso:** na tela inicial e em ⚙ IA, "Uso de IA neste cliente" mostra chamadas, tokens, buscas e custo estimado (informe o preço do modelo em ⚙ IA; a cobrança oficial é a do provedor).
+- **Modo econômico** (⚙ IA): menos contexto e menos buscas por chamada.
+- **Modo manual, sem custo de API:** em cada tópico use *Copiar prompt completo* (inclui material, pesquisa e demais tópicos), rode no seu ChatGPT/Claude/Gemini/Perplexity (planos de assinatura) e cole o JSON em *Importar resposta*. Na aba Pesquisa, use *Copiar prompt* + *Colar relatório* em cada tema, e *Copiar prompt da auditoria* + *Colar resposta da auditoria*.
+- **IA no seu computador:** em ⚙ IA escolha "Outra IA (compatível com OpenAI)" e aponte para o Ollama ou LM Studio (grátis, sem busca na web, qualidade menor). Groq, OpenRouter e Mistral também funcionam por aí e costumam ter camadas gratuitas com limites.
+
 ## Tópicos (21)
 Briefing · Presença digital · Mercado · Sprint de inteligência real (manual) · Concorrência · Público · Voz do mercado & consciência · Identidade & objetivos · Marca & valores · Expertise & arquétipos · História de origem · Movimento · Esteira · Posicionamento · Tom de voz & linhas editoriais · Conteúdo · Lançamento & e-mail · Projeções & ROI · Plano de ação · Resumo executivo & SWOT · Proposta (opcional).
 A apresentação inclui automaticamente capa, roteiro (agenda) e encerramento. Tópicos vazios ou desmarcados não geram slides.

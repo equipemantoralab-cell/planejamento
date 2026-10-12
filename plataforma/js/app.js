@@ -33,7 +33,7 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 const DEFAULT_META = () => ({ cliente: '', tagline: '', agencia: 'Mantora Lab', ano: String(new Date().getFullYear()), data: '', estrategista: '', estilo: 'mantora', logoMantora: true, brand: '#582aab', dark: '#400958', accent: '#704bfd', idvPos: 'before', idvExcl: [], off: [] });
 function newProject(name, data) {
   const id = uid(), d = data || {};
-  state.projects[id] = { id, name, meta: { ...DEFAULT_META(), cliente: name, ...(d.meta || {}) }, data: d.data || {}, check: d.check || {}, research: d.research || {}, validation: d.validation || {}, audit: d.audit || {} };
+  state.projects[id] = { id, name, meta: { ...DEFAULT_META(), cliente: name, ...(d.meta || {}) }, data: d.data || {}, check: d.check || {}, research: d.research || {}, validation: d.validation || {}, audit: d.audit || {}, usage: d.usage || undefined };
   state.cur = id; save(); return id;
 }
 async function switchProject(id) { state.cur = id; save(); await loadAssets(); view = 'home'; render(); }
@@ -120,7 +120,9 @@ function homeView() {
   <div class="grid2"><div class="box"><h3>Conteúdo preenchido</h3><p class="h">${filledN} de ${SECTIONS.length} tópicos com mais de 60%</p><div class="prog"><div style="width:${tot}%"></div></div><div class="stat">${tot}%</div></div>
   <div class="box"><h3>Checklist do processo</h3><p class="h">Etapas da planilha executiva</p><div class="prog"><div style="width:${Math.round(done / all * 100)}%"></div></div><div class="stat">${done}/${all}</div></div></div>
   <div class="box tools"><h3>① Contextualizar o Claude</h3><p class="h">Antes de rodar os prompts dos tópicos, crie o projeto do cliente no Claude, suba os arquivos (briefing, DNA do Expert, pesquisa de mercado, call) e cole este prompt. Ele se atualiza com os dados do tópico <b>Briefing & DNA</b>.</p><textarea id="ctxBox" readonly rows="6">${esc(contextPrompt(p))}</textarea><div style="margin-top:10px"><button class="btn ghost xs" id="cpCtx">Copiar prompt de contexto</button></div></div>
-  <div class="box" style="background:linear-gradient(120deg,#400958,#582aab);color:#fff;border:0"><h3 style="font-size:17px">✨ Preencher tudo com IA</h3><p class="h" style="color:#dacdf6">Cole o material do cliente no tópico <b>Briefing & DNA</b> e deixe o Claude gerar todos os tópicos pendentes, em ordem, mantendo a coerência entre eles. ${AI.key ? 'IA conectada.' : 'Antes, conecte sua chave em ⚙ IA.'}</p><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn light" id="aiAll">Gerar todos os tópicos pendentes</button><button class="btn dark" id="aiSet">⚙ Configurar IA</button></div></div>
+  <div class="box" style="background:linear-gradient(120deg,#400958,#582aab);color:#fff;border:0"><h3 style="font-size:17px">✨ Preencher tudo com IA</h3><p class="h" style="color:#dacdf6">Cole o material do cliente no tópico <b>Briefing & DNA</b> e deixe o Claude gerar todos os tópicos pendentes, em ordem, mantendo a coerência entre eles. ${AI.has(AI.provider) ? 'IA conectada.' : 'Antes, conecte uma IA em ⚙ IA — ou use o modo manual de cada tópico, sem custo de API.'}</p><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn light" id="aiAll">Gerar todos os tópicos pendentes</button><button class="btn dark" id="aiSet">⚙ Configurar IA</button></div></div>
+  ${costTipsHtml()}
+  <div class="box"><h3>Uso de IA neste cliente</h3>${aiUsageHtml(p)}</div>
   <div class="box"><h3>Fluxo de trabalho</h3><p class="h" style="margin:0">1) <b>Projeto & IDV</b>: cores, fotos e upload da IDV · 2) <b>Tópicos</b>, na ordem do menu (prompt → Claude → colar JSON → revisar) · 3) <b>Revisar & gerar</b>: confira, apresente, exporte PDF ou baixe o PPTX para editar no Canva.</p></div>
   ${chk}</div>`;
 }
@@ -153,7 +155,7 @@ function sectionView(sec) {
   const i = SECTIONS.indexOf(sec);
   return `<div class="wrap">${hero(`(${secNum(sec)}) ${sec.stage}`, sec.title, sec.desc)}
   ${sec.manual ? sprintBox() : ''}<div class="box tools" ${sec.manual ? 'style="display:none"' : ''}><h3>✨ Preencher com o Claude</h3><p class="h">Um clique em <b>Gerar com IA</b> preenche o tópico usando o material do cliente e o que já foi definido nos outros tópicos (conecte a chave em ⚙ IA). Ou copie o prompt, rode no Claude do projeto e cole a resposta abaixo. Sempre revise antes de apresentar.</p>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button class="btn" id="aiGen">✨ Gerar com IA</button><button class="btn ghost xs" id="cpPrompt">Copiar prompt</button><button class="btn ghost xs" id="togPrompt">Ver prompt</button></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button class="btn" id="aiGen">✨ Gerar com IA</button><button class="btn ghost xs" id="cpPrompt">Copiar prompt</button><button class="btn ghost xs" id="cpFull" title="Inclui o material do cliente, a pesquisa e os outros tópicos — para rodar no seu ChatGPT/Claude/Gemini sem gastar API">📋 Copiar prompt completo (com material e pesquisa)</button><button class="btn ghost xs" id="togPrompt">Ver prompt</button></div>
   <textarea id="promptBox" readonly rows="9" style="display:none;margin-bottom:12px">${esc(prompt)}</textarea>
   <textarea id="pasteJson" rows="3" placeholder="Cole aqui a resposta JSON do Claude…"></textarea><div style="margin-top:8px"><button class="btn xs" id="impJson">Importar resposta</button></div></div>
   <div class="box">${sec.fields.map(f => fieldHTML(sec, f, d)).join('')}${sec.id === 'briefing' ? '<div style="margin-top:10px"><label class="btn ghost xs" style="cursor:pointer">📎 Anexar arquivos (.txt .md .pdf) ao material-base<input type="file" id="attachFiles" accept=".txt,.md,.pdf,.json,.csv" multiple hidden></label></div>' : ''}</div>
@@ -281,6 +283,7 @@ function bindMain() {
     $('#aiGen').onclick = () => aiFillOne(sec);
     const af = $('#attachFiles'); if (af) af.onchange = () => aiAttachFiles([...af.files]);
     $('#cpPrompt').onclick = () => navigator.clipboard.writeText($('#promptBox').value).then(() => toast('Prompt copiado! Cole no Claude do projeto.'));
+    $('#cpFull').onclick = () => navigator.clipboard.writeText(AI_SYSTEM + '\n\n' + aiUserPrompt(sec, P())).then(() => toast('Prompt completo copiado (com material, pesquisa e demais tópicos). Rode na sua IA e cole o JSON em Importar resposta.'));
     $('#togPrompt').onclick = () => { const b = $('#promptBox'); b.style.display = b.style.display === 'none' ? 'block' : 'none'; };
     $('#impJson').onclick = () => importJson(sec, $('#pasteJson').value);
     const i = SECTIONS.indexOf(sec);
