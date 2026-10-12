@@ -25,6 +25,8 @@ const AI = {
   set rprov(v) { this.put('ple.rprov', v); },
   get web() { return this.ls('ple.web', '1') !== '0'; },
   set web(v) { this.put('ple.web', v ? '1' : '0'); },
+  get cross() { return this.ls('ple.cross', '0') === '1'; },
+  set cross(v) { this.put('ple.cross', v ? '1' : '0'); },
   lastSources: [], lastNoWeb: false, stop: false, busy: false
 };
 const researchProvider = () => (AI.rprov === 'same' ? AI.provider : AI.rprov);
@@ -181,7 +183,8 @@ async function aiFillAll() {
   const p = P();
   if (!Object.keys(p.research || {}).length && confirm('Ainda não há pesquisa feita para este cliente. Quer que o Claude pesquise o mercado na web ANTES de gerar os tópicos? (recomendado — os tópicos saem com dados e fontes reais)')) { await runResearchAll(false); if (AI.stop) return; }
   if (!aiMaterial(p) && !confirm('Nenhum material-base foi colado/anexado no tópico "Briefing & DNA". A IA vai trabalhar só com o resumo do briefing e vai sinalizar o que precisa de confirmação. Continuar mesmo assim?')) return;
-  const todo = SECTIONS.filter(s => s.id !== 'proposta' && pctSec(s) < 60);
+  const todo = SECTIONS.filter(s => s.id !== 'proposta' && !s.manual && pctSec(s) < 60);
+  if (typeof validationProgress === 'function' && Object.keys(p.research || {}).length) { const vp = validationProgress(p); if (vp.done < vp.total && !confirm(`O checklist de validação da pesquisa está em ${vp.done}/${vp.total}. O POP manda validar a pesquisa antes de seguir (aba Pesquisa com IA). Gerar os tópicos mesmo assim?`)) return; }
   if (!todo.length) return toast('Todos os tópicos já estão com mais de 60% — nada a gerar.');
   if (!confirm(`A IA vai preencher ${todo.length} tópico(s) com menos de 60% (tópicos já preenchidos são mantidos; a proposta comercial fica de fora). Isso faz várias chamadas e consome créditos da sua chave da API. Continuar?`)) return;
   AI.busy = true; AI.stop = false; const failed = [];

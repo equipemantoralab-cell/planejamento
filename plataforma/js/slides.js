@@ -231,6 +231,67 @@ function buildSlides(P, A) {
     if (ps.length) out.push(sec('dk', `<div class="center"><div class="eb">Próximos passos</div><h2 style="font-size:54px;margin-bottom:34px">Vamos começar</h2>${ul(ps)}</div>`));
   }
 
+  /* ---------- Identidade & objetivos ---------- */
+  {
+    const d = D('identidade'), kv = [['Marca', 'marca'], ['Fundador(a)', 'fundador'], ['Categoria', 'categoria'], ['Foco principal', 'foco'], ['Vertical secundária', 'vertical']].filter(([, k]) => txt(d, k)), ob = rowsOf(d, 'objetivos');
+    if (kv.length || txt(d, 'missao') || txt(d, 'nome_sig')) std('Identidade do projeto', txt(d, 'marca') || 'Quem somos', '', `<div class="grid" style="grid-template-columns:1fr 1.15fr;height:100%"><div class="fit" style="gap:12px">${kv.map(([l, k]) => `<div class="kv" style="padding:14px 24px"><div class="k">${l}</div><div class="v" style="font-size:19px">${nl(txt(d, k))}</div></div>`).join('')}</div><div class="fit" style="gap:16px;justify-content:stretch">${txt(d, 'nome_sig') ? `<div class="card" style="flex:1"><div class="sm">O nome</div><p style="color:var(--ink)">${nl(txt(d, 'nome_sig'))}</p></div>` : ''}${txt(d, 'missao') ? `<div class="card dkc" style="flex:1"><div class="sm">Missão</div><p>${nl(txt(d, 'missao'))}</p></div>` : ''}${txt(d, 'visao') ? `<div class="card mid" style="flex:1"><div class="sm">Visão</div><p>${nl(txt(d, 'visao'))}</p></div>` : ''}</div></div>`);
+    if (ob.length) std('Objetivos do projeto', 'O que este planejamento precisa entregar', '', `<div class="grid g3 rows2">${ob.slice(0, 6).map((x, i) => card(x.titulo, x.desc, i % 2 ? 'dkc' : '', `<div class="num" style="font-size:32px;margin-bottom:6px">${i + 1}</div>`)).join('')}</div>`);
+  }
+
+  /* ---------- Concorrência: comunicação, mapa de preços e posicionamento ---------- */
+  {
+    const d = D('conc'), cc = rowsOf(d, 'concorrentes');
+    cc.filter(c => c.produtos || c.usp || c.comunicacao || c.metricas || c.anuncios).forEach(c => std('Comunicação e métricas', c.nome, '', `<div class="grid g3" style="height:100%"><div class="card dkc"><div class="sm">Produtos & preços</div>${ul(lines(c.produtos))}</div><div class="card"><div class="sm">Proposta única</div><p style="color:var(--ink)">${nl(c.usp)}</p>${c.anuncios ? `<div class="sm" style="margin-top:18px">Anúncios</div><p>${nl(c.anuncios)}</p>` : ''}</div><div class="card"><div class="sm">Comunicação</div><p>${nl(c.comunicacao)}</p>${c.metricas ? `<div class="sm" style="margin-top:18px">Engajamento</div><p>${nl(c.metricas)}</p>` : ''}</div></div>`));
+    const mp = rowsOf(d, 'mapa_precos');
+    if (mp.length) std('Mapa de preços do mercado', 'Onde estão os preços — e os gaps', '', tbl(['Faixa', 'Concorrente 1', 'Concorrente 2', 'Concorrente 3', 'Oportunidade'], mp.map(x => [x.faixa, x.c1, x.c2, x.c3, x.oport])));
+    if (txt(d, 'pos_dif') || txt(d, 'pos_proposta') || txt(d, 'pos_nicho')) std('Oportunidades de posicionamento', 'Como ocupar o espaço em branco', '', `<div class="grid g3" style="height:340px">${card('Diferenciação principal', txt(d, 'pos_dif'), 'dkc')}${card('Proposta única sugerida', txt(d, 'pos_proposta'))}${card('Nicho a explorar', txt(d, 'pos_nicho'), 'dkc')}</div>`);
+  }
+
+  /* ---------- Mercado: sazonalidade, ticket, maturidade e fatores de mudança ---------- */
+  {
+    const d = D('mercado'), sz = rowsOf(d, 'sazon');
+    if (sz.length) {
+      const pico = x => /pico|alta|alto/i.test(x.tipo || ''), P1 = sz.filter(pico), B1 = sz.filter(x => !pico(x)), f = x => `${x.quando}${x.motivo ? ': ' + x.motivo : ''}`;
+      std('Calendário de demanda', 'Sazonalidade do nicho', '', `<div class="grid g2" style="height:100%"><div class="card dkc"><div class="sm">Picos de demanda</div>${ul(P1.map(f))}</div><div class="card"><div class="sm">Períodos de baixa</div>${ul(B1.map(f), 'x')}</div></div>`);
+    }
+    const tk = rowsOf(d, 'ticket');
+    if (tk.length) std('Preços praticados', 'Ticket médio do mercado', '', `<div class="grid g${Math.min(tk.length, 4)}" style="height:300px">${tk.slice(0, 4).map((x, i) => `<div class="card${i % 2 ? '' : ' dkc'}" style="display:flex;flex-direction:column;justify-content:center"><div class="sm">${esc(x.faixa)}</div><div class="big" style="font-size:40px;color:${i % 2 ? 'var(--brand)' : '#fff'}">${esc(x.valor)}</div></div>`).join('')}</div>`, { after: (txt(d, 'busca_volume') || listOf(d, 'busca_palavras').length) ? bar('Buscas', [txt(d, 'busca_volume') && `volume mensal ${txt(d, 'busca_volume')}`, txt(d, 'busca_cresc') && `crescimento ${txt(d, 'busca_cresc')}`, listOf(d, 'busca_palavras').length && `palavras-chave: ${listOf(d, 'busca_palavras').slice(0, 5).join(', ')}`].filter(Boolean).join(' · '), 'lt') : '' });
+    const mt = [['Estágio do mercado', 'mat_estagio'], ['Nível de saturação', 'mat_saturacao'], ['Barreira de entrada', 'mat_barreira'], ['Diferenciação necessária', 'mat_dif'], ['Nicho dentro do nicho', 'mat_nicho']].filter(([, k]) => txt(d, k));
+    if (mt.length) std('Maturidade do mercado', 'Maturidade e saturação', '', `<div class="grid g2" style="height:auto;gap:14px">${mt.map(([l, k]) => `<div class="kv" style="padding:22px 26px"><div class="k">${l}</div><div class="v" style="font-size:20px">${nl(txt(d, k))}</div></div>`).join('')}</div>`);
+    const ft = [['Tecnológicos', 'fat_tec'], ['Sociais e geracionais', 'fat_soc'], ['Econômicos', 'fat_eco']].filter(([, k]) => txt(d, k));
+    if (ft.length) std('Previsão de evolução', 'Fatores de mudança', '', `<div class="grid g${ft.length}" style="height:340px">${ft.map(([l, k], i) => card(l, txt(d, k), i == 1 ? 'dkc' : '')).join('')}</div>`);
+  }
+
+  /* ---------- Personas completas ---------- */
+  {
+    const d = D('publico');
+    rowsOf(d, 'personas').forEach((x, i) => std(`Persona ${i + 1}`, (x.nome || '').split(',')[0] || `Persona ${i + 1}`, '', `<div class="grid" style="grid-template-columns:.8fr 1.6fr;height:100%"><div class="card dkc" style="display:flex;flex-direction:column"><div class="badge" style="background:var(--accent);color:#fff;margin-bottom:14px">${esc((x.nome || '?')[0])}</div><h3 style="font-size:24px">${esc(x.nome)}</h3><p style="font-size:17px">${nl(x.contexto)}</p>${x.frase ? `<p class="serif" style="margin-top:auto;font-style:italic;font-size:19px;color:#fff">“${esc(x.frase)}”</p>` : ''}</div><div class="grid g2 rows2" style="gap:16px">${[['Dores', x.dores], ['Desejos', x.desejos], ['Objeções', x.objecoes], ['Canais, hábitos e gatilho de compra', [x.canais, x.gatilho].filter(Boolean).join('\n\n')]].map(([l, v]) => `<div class="card" style="padding:20px 24px"><div class="sm">${l}</div><p style="font-size:16.5px">${nl(v)}</p></div>`).join('')}</div></div>`));
+  }
+
+  /* ---------- Voz do mercado ---------- */
+  {
+    const d = D('voz'), cp = rowsOf(d, 'cons_pct'), ob = rowsOf(d, 'objecoes'), fr = listOf(d, 'frases'), rs = listOf(d, 'ressoam'), af = listOf(d, 'afastam'), cr = rowsOf(d, 'crencas_pub');
+    if (cp.length || txt(d, 'cons_nivel')) std('Nível de consciência', txt(d, 'cons_nivel') ? `Predominante: ${txt(d, 'cons_nivel')}` : 'Nível de consciência do mercado', txt(d, 'cons_just'), cp.length ? `<div class="flow" style="height:230px">${cp.slice(0, 5).map(x => { const hit = txt(d, 'cons_nivel') && String(x.nivel).toLowerCase() === txt(d, 'cons_nivel').toLowerCase(); return `<div class="st" style="${hit ? 'background:var(--brand)' : ''}"><div class="num" style="font-size:34px;${hit ? 'color:#fff' : ''}">${esc(x.pct)}</div><h3 style="font-size:18px;${hit ? 'color:#fff' : ''}">${esc(x.nivel)}</h3></div>`; }).join('')}</div>` : '', { after: txt(d, 'cons_impl') ? bar('Na comunicação', txt(d, 'cons_impl'), 'lt') : '' });
+    chunk(ob, 5).forEach((g, i, all) => std('Objeções reais do mercado', all.length > 1 ? `Objeções (${i + 1}/${all.length})` : 'Principais objeções', '', tbl(['Objeção', 'Como é dita', 'Como contornar', 'Intensidade'], g.map(x => [x.objecao, x.fala, x.contorno, x.intensidade]), [210, 260, 0, 130])));
+    if (fr.length || rs.length || af.length) std('Linguagem nativa do avatar', 'Como o público fala', '', `<div class="grid" style="grid-template-columns:1.5fr 1fr 1fr;height:100%"><div class="card dkc"><div class="sm">Frases que o avatar usa</div><div>${fr.slice(0, 10).map(x => `<p style="font-size:16.5px;margin:0 0 11px;color:rgba(255,255,255,.9)">“${esc(x)}”</p>`).join('')}</div></div><div class="card"><div class="sm">Ressoam</div>${ul(rs)}</div><div class="card"><div class="sm" style="color:#d9506a">Afastam</div>${ul(af, 'x')}</div></div>`);
+    chunk(cr, 5).forEach((g, i, all) => std('Crenças limitantes', all.length > 1 ? `Crenças do público (${i + 1}/${all.length})` : 'Crenças que travam o público', '', tbl(['Crença', 'Como se formou', 'Argumento que desfaz'], g.map(x => [x.crenca, x.formacao, x.argumento]))));
+    if (txt(d, 'sonho')) dkq('O sonho secreto', txt(d, 'sonho'), 'O que o avatar realmente quer');
+  }
+
+  /* ---------- Tom de voz e linhas editoriais ---------- */
+  {
+    const d = D('tom'), tm = rowsOf(d, 'tom'), ln = rowsOf(d, 'linhas');
+    if (tm.length) std('Tom de voz', 'Como a marca soa', '', `<div class="grid g3 rows2">${tm.slice(0, 6).map((x, i) => `<div class="card${i % 3 == 1 ? ' dkc' : ''}"><span class="tag${i % 2 ? ' ac' : ''}">${esc(x.atributo)}</span><p style="font-size:16.5px">${nl(x.desc)}</p>${x.exemplo ? `<p style="margin-top:10px;font-style:italic;font-size:15px">${nl(x.exemplo)}</p>` : ''}</div>`).join('')}</div>`);
+    if (txt(d, 'bp_nome') || txt(d, 'bp_desc')) std('Brand persona', txt(d, 'bp_nome') || 'Brand persona', txt(d, 'bp_desc'), `<div class="grid g2" style="height:300px"><div class="card dkc"><div class="sm">Como a marca fala</div>${ul(listOf(d, 'bp_fala'))}</div><div class="card"><div class="sm" style="color:#d9506a">O que a marca evita</div>${ul(listOf(d, 'bp_evita'), 'x')}</div></div>`);
+    chunk(ln, 4).forEach((g, i, all) => std('Linhas editoriais', all.length > 1 ? `Linhas editoriais (${i + 1}/${all.length})` : 'Linhas editoriais', '', `<div class="grid g2 rows2">${g.map((x, j) => card(x.nome, [x.desc, lines(x.exemplos).slice(0, 3).map(e => '• ' + e).join('\n')].filter(Boolean).join('\n\n'), (j == 1 || j == 2) ? 'dkc' : '')).join('')}</div>`));
+  }
+
+  /* ---------- Arquétipos múltiplos ---------- */
+  {
+    const d = D('expertise'), ar = rowsOf(d, 'arquetipos');
+    if (ar.length) std('Arquétipos', 'Quem a marca é', '', `<div class="grid g${Math.min(ar.length, 4) == 4 ? 2 : Math.min(ar.length, 3)}${ar.length >= 4 ? ' rows2' : ''}" style="${ar.length < 4 ? 'height:340px' : ''}">${ar.slice(0, 4).map((x, i) => `<div class="card${i % 2 ? '' : ' dkc'}">${x.papel ? `<span class="tag ac">${esc(x.papel)}</span>` : ''}<h3>${esc(x.nome)}</h3><p>${nl(x.desc)}</p></div>`).join('')}</div>`);
+  }
+
   /* ---------- Fontes da pesquisa ---------- */
   {
     curBlk = 'fontes';
@@ -249,8 +310,8 @@ function buildSlides(P, A) {
     out.push(sec('dk', `<div class="center" style="align-items:center;text-align:center">${A.logo ? `<img src="${A.logo}" style="height:90px;margin-bottom:30px;object-fit:contain">` : ''}<h2 style="font-size:70px">${esc(cli)}</h2>${f ? `<p class="serif" style="font-size:28px;color:var(--accent);margin-top:20px;font-weight:500">${nl(f)}</p>` : ''}<div style="margin-top:44px;display:flex;flex-direction:column;align-items:center;gap:14px">${useLogo ? mlogo(36) : `<p class="lead" style="margin:0;font-size:17px;letter-spacing:.2em;text-transform:uppercase">${esc(m.agencia || '')}</p>`}${m.ano ? `<span style="font-size:15px;letter-spacing:.24em;color:rgba(255,255,255,.6)">${esc(m.ano)}</span>` : ''}</div></div>`));
   }
 
-  const ORD = ['cover', 'agenda', 'resumo', 'briefing', 'diag', 'marca', 'expertise', 'origem', 'movimento', 'mercado', 'conc', 'publico', 'esteira', 'posic', 'conteudo', 'esteira2', 'lancamento', 'projecoes', 'plano', 'proposta', 'fontes', 'manifesto', 'closing'];
-  const labels = [['Diagnóstico inicial', ['briefing', 'diag']], ['Marca e história de origem', ['marca', 'expertise', 'origem']], ['Movimento: inimigo, crenças e mantras', ['movimento']], ['Mercado e concorrência', ['mercado', 'conc']], ['Público e personas', ['publico']], ['Esteira de produtos', ['esteira', 'esteira2']], ['Posicionamento e canais', ['posic']], ['Estratégia de conteúdo', ['conteudo']], ['Lançamento e e-mail', ['lancamento']], ['Projeções e ROI', ['projecoes']], ['Plano de ação', ['plano']], ['Proposta de implementação', ['proposta']]];
+  const ORD = ['cover', 'agenda', 'resumo', 'identidade', 'briefing', 'diag', 'marca', 'expertise', 'origem', 'movimento', 'mercado', 'conc', 'publico', 'voz', 'esteira', 'posic', 'tom', 'conteudo', 'esteira2', 'lancamento', 'projecoes', 'plano', 'proposta', 'fontes', 'manifesto', 'closing'];
+  const labels = [['Diagnóstico inicial', ['briefing', 'diag']], ['Identidade, marca e história de origem', ['identidade', 'marca', 'expertise', 'origem']], ['Movimento: inimigo, crenças e mantras', ['movimento']], ['Mercado e concorrência', ['mercado', 'conc']], ['Público, personas e voz do mercado', ['publico', 'voz']], ['Esteira de produtos', ['esteira', 'esteira2']], ['Posicionamento e canais', ['posic']], ['Tom de voz e estratégia de conteúdo', ['tom', 'conteudo']], ['Lançamento e e-mail', ['lancamento']], ['Projeções e ROI', ['projecoes']], ['Plano de ação', ['plano']], ['Proposta de implementação', ['proposta']]];
   const present = new Set(items.map(x => x.b)), ag = labels.filter(([, bs]) => bs.some(b => present.has(b)));
   if (ag.length >= 3) { curBlk = 'agenda'; out.push(sec('', `<div class="pad"><div class="eb">Roteiro da apresentação</div><h2>O que vamos ver</h2></div><div class="body"><div class="agenda">${ag.map(([t], i) => `<div class="it"><div class="n">${String(i + 1).padStart(2, '0')}</div><div class="t">${esc(t)}</div></div>`).join('')}</div></div>`)); }
   const ix = b => { const i = ORD.indexOf(b); return i < 0 ? 99 : i; };

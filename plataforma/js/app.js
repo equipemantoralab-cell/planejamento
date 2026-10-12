@@ -33,7 +33,7 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 const DEFAULT_META = () => ({ cliente: '', tagline: '', agencia: 'Mantora Lab', ano: String(new Date().getFullYear()), data: '', estrategista: '', estilo: 'mantora', logoMantora: true, brand: '#582aab', dark: '#400958', accent: '#704bfd', idvPos: 'before', idvExcl: [], off: [] });
 function newProject(name, data) {
   const id = uid(), d = data || {};
-  state.projects[id] = { id, name, meta: { ...DEFAULT_META(), cliente: name, ...(d.meta || {}) }, data: d.data || {}, check: d.check || {}, research: d.research || {} };
+  state.projects[id] = { id, name, meta: { ...DEFAULT_META(), cliente: name, ...(d.meta || {}) }, data: d.data || {}, check: d.check || {}, research: d.research || {}, validation: d.validation || {}, audit: d.audit || {} };
   state.cur = id; save(); return id;
 }
 async function switchProject(id) { state.cur = id; save(); await loadAssets(); view = 'home'; render(); }
@@ -152,7 +152,7 @@ function sectionView(sec) {
   const prompt = buildPrompt(sec, P().meta.cliente, P());
   const i = SECTIONS.indexOf(sec);
   return `<div class="wrap">${hero(`(${secNum(sec)}) ${sec.stage}`, sec.title, sec.desc)}
-  <div class="box tools"><h3>✨ Preencher com o Claude</h3><p class="h">Um clique em <b>Gerar com IA</b> preenche o tópico usando o material do cliente e o que já foi definido nos outros tópicos (conecte a chave em ⚙ IA). Ou copie o prompt, rode no Claude do projeto e cole a resposta abaixo. Sempre revise antes de apresentar.</p>
+  ${sec.manual ? sprintBox() : ''}<div class="box tools" ${sec.manual ? 'style="display:none"' : ''}><h3>✨ Preencher com o Claude</h3><p class="h">Um clique em <b>Gerar com IA</b> preenche o tópico usando o material do cliente e o que já foi definido nos outros tópicos (conecte a chave em ⚙ IA). Ou copie o prompt, rode no Claude do projeto e cole a resposta abaixo. Sempre revise antes de apresentar.</p>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button class="btn" id="aiGen">✨ Gerar com IA</button><button class="btn ghost xs" id="cpPrompt">Copiar prompt</button><button class="btn ghost xs" id="togPrompt">Ver prompt</button></div>
   <textarea id="promptBox" readonly rows="9" style="display:none;margin-bottom:12px">${esc(prompt)}</textarea>
   <textarea id="pasteJson" rows="3" placeholder="Cole aqui a resposta JSON do Claude…"></textarea><div style="margin-top:8px"><button class="btn xs" id="impJson">Importar resposta</button></div></div>
@@ -161,12 +161,18 @@ function sectionView(sec) {
   <label class="chk" style="margin-top:14px"><input type="checkbox" data-incl="${sec.id}" ${isOff(sec.id) ? '' : 'checked'}><span>Incluir este tópico na apresentação</span></label></div>
   <div style="display:flex;justify-content:space-between">${i > 0 ? `<button class="btn ghost" id="prevSec">← ${SECTIONS[i - 1].title}</button>` : '<span></span>'}<button class="btn" id="nextSec">${i < SECTIONS.length - 1 ? SECTIONS[i + 1].title + ' →' : 'Revisar & gerar →'}</button></div></div>`;
 }
+function sprintBox() {
+  const st = sprintStatus(P());
+  return `<div class="box" style="border-color:#d9ccff;background:#faf7ff"><h3>Critérios de pronto do sprint (POP, etapa 3)</h3><p class="h">Este passo é manual: copie as frases EXATAS, elas são matéria-prima direta de copy. A IA usa estes dados com prioridade sobre qualquer inferência.</p>${st.map(c => `<span class="chip ${c.ok ? 'ok' : 'mid'}" style="margin:0 6px 6px 0">${c.ok ? '✓' : '○'} ${esc(c.t)}</span>`).join('')}<p class="h" style="margin:10px 0 0">Onde buscar: facebook.com/ads/library (anúncios mais antigos = os que convertem) · 2 posts mais engajados de cada concorrente no Instagram/YouTube · "[concorrente] reclame aqui" · vídeo mais visto do problema principal no YouTube.</p></div>`;
+}
 function deckView() {
   const rows = SECTIONS.map(s => { const v = pctSec(s), lo = leftovers(s), off = isOff(s.id); return `<tr><td>${secNum(s)}</td><td><b>${s.title}</b></td><td><span class="chip ${v >= 80 ? 'ok' : v >= 30 ? 'mid' : 'no'}">${v}%</span>${lo ? ` <span class="chip mid" title="Campos com '...' ou [colchetes]">${lo} a revisar</span>` : ''}</td><td><label class="chk" style="padding:0"><input type="checkbox" data-incl="${s.id}" ${off ? '' : 'checked'}><span>incluir</span></label></td><td><button class="btn ghost xs" data-edit="${s.id}">Editar</button></td></tr>`; }).join('');
   const nsrc = typeof allSources === 'function' ? allSources(P()).length : 0;
   const rowsX = nsrc ? `<tr><td>⌕</td><td><b>Fontes da pesquisa</b></td><td><span class="chip ok">${nsrc} fontes</span></td><td><label class="chk" style="padding:0"><input type="checkbox" data-incl="pesquisa" ${isOff('pesquisa') ? '' : 'checked'}><span>incluir</span></label></td><td><button class="btn ghost xs" data-edit="pesquisa">Ver</button></td></tr>` : '';
-  return `<div class="wrap" style="max-width:1180px">${hero('Etapa final', 'Revisar & gerar', 'Confira o que está pronto, escolha o que entra na apresentação e exporte.', '<button class="btn light" id="dPresent">▶ Apresentar</button><button class="btn dark" id="dPdf">⬇ PDF</button><button class="btn dark" id="dPptx">⬇ PPTX editável (Canva)</button><button class="btn dark" id="dHtml">⬇ HTML</button>')}
-  <div class="box"><h3>Revisão dos tópicos</h3><p class="h">Tópicos vazios ou desmarcados não geram slides.</p><table class="rev">${rows}${rowsX}</table></div>
+  const vp = typeof validationProgress === 'function' ? validationProgress(P()) : { done: 0, total: 0 }, hasRes = Object.keys(P().research || {}).length;
+  const rowsV = hasRes ? `<tr><td>✓</td><td><b>Validação da pesquisa (checklist)</b></td><td><span class="chip ${vp.done === vp.total ? 'ok' : 'mid'}">${vp.done}/${vp.total}</span></td><td></td><td><button class="btn ghost xs" data-edit="pesquisa">Abrir</button></td></tr>` : '';
+  return `<div class="wrap" style="max-width:1180px">${hero('Etapa final', 'Revisar & gerar', 'Confira o que está pronto, escolha o que entra na apresentação e exporte.', '<button class="btn light" id="dPresent">▶ Apresentar</button><button class="btn dark" id="dPdf">⬇ PDF</button><button class="btn dark" id="dPptx">⬇ PPTX editável (Canva)</button><button class="btn dark" id="dDocx">⬇ Word (.docx)</button><button class="btn dark" id="dMd">⬇ Pacote .md</button><button class="btn dark" id="dHtml">⬇ HTML</button>')}
+  <div class="box"><h3>Revisão dos tópicos</h3><p class="h">Tópicos vazios ou desmarcados não geram slides.</p><table class="rev">${rows}${rowsX}${rowsV}</table></div>
   ${!assets.idv.length ? `<div class="warn">Nenhuma IDV enviada ainda — a apresentação será gerada sem as páginas de identidade visual.</div>` : ''}
   <div class="sticky"><b id="cnt"></b><span class="sp"></span><button class="btn ghost xs" id="dRefresh">↻ Atualizar prévia</button></div>
   <div id="deckList"></div></div>`;
@@ -193,6 +199,8 @@ function initDeck() {
   $('#dPresent').onclick = () => present(0);
   $('#dPdf').onclick = exportPdf;
   $('#dHtml').onclick = exportHtml;
+  $('#dDocx').onclick = exportDocx;
+  $('#dMd').onclick = exportMdPack;
   $('#dPptx').onclick = exportPptxUI;
   window.onresize = scaleDeck;
   window.__redraw = draw;
@@ -339,14 +347,14 @@ $('#aiBtn').onclick = openAiSettings;
 $('#projSel').onchange = e => switchProject(e.target.value);
 $('#menuBtn').onclick = () => {
   const o = prompt('Digite o número:\n1 – Exportar projeto (JSON)\n2 – Importar projeto (JSON)\n3 – Carregar exemplo (Adriano Atanes)\n4 – Excluir este cliente');
-  if (o === '1' && P()) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ meta: P().meta, data: P().data, check: P().check, research: P().research || {} }, null, 1)], { type: 'application/json' })); a.download = `projeto_${P().name.replace(/\W+/g, '_')}.json`; a.click(); }
+  if (o === '1' && P()) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ meta: P().meta, data: P().data, check: P().check, research: P().research || {}, validation: P().validation || {}, audit: P().audit || {} }, null, 1)], { type: 'application/json' })); a.download = `projeto_${P().name.replace(/\W+/g, '_')}.json`; a.click(); }
   else if (o === '2') $('#importFile').click();
   else if (o === '3') loadExample();
   else if (o === '4' && P() && confirm(`Excluir "${P().name}" e todos os dados? Não dá para desfazer.`)) { const id = P().id; ['idv', 'foto1', 'foto2', 'logo'].forEach(k => idb.del(id + ':' + k)); delete state.projects[id]; state.cur = Object.keys(state.projects)[0] || null; save(); loadAssets().then(() => { view = 'home'; render(); }); }
 };
 $('#importFile').onchange = async e => {
   const f = e.target.files[0]; if (!f) return;
-  try { const o = JSON.parse(await f.text()); newProject(o.meta?.cliente || 'Importado', { meta: { ...o.meta }, data: o.data || {}, check: o.check || {}, research: o.research || {} }); await loadAssets(); view = 'home'; render(); toast('Projeto importado.'); } catch (err) { toast('Arquivo inválido.'); }
+  try { const o = JSON.parse(await f.text()); newProject(o.meta?.cliente || 'Importado', { meta: { ...o.meta }, data: o.data || {}, check: o.check || {}, research: o.research || {}, validation: o.validation || {}, audit: o.audit || {} }); await loadAssets(); view = 'home'; render(); toast('Projeto importado.'); } catch (err) { toast('Arquivo inválido.'); }
   e.target.value = '';
 };
 let tT;
